@@ -60,7 +60,7 @@ def main(args):
 		if 'omic' in args.mode or args.mode == 'cluster' or args.mode == 'graph' or args.mode == 'pyramid':
 			args.omic_input_dim = train_dataset.genomic_features.shape[1]
 			print("Genomic Dimension", args.omic_input_dim)
-		elif 'coattn' in args.mode:
+		elif 'coattn' in args.mode:     #######
 			args.omic_sizes = train_dataset.omic_sizes
 			print('Genomic Dimensions', args.omic_sizes)
 		else:
@@ -68,7 +68,7 @@ def main(args):
 
 		### Run Train-Val on Survival Task.
 		if args.task_type == 'survival':
-			val_latest, cindex_latest = train(datasets, i, args)
+			val_latest, cindex_latest = train(datasets, i, args)   ####
 			latest_val_cindex.append(cindex_latest)
 
 		### Write Results for Each Split to PKL
@@ -90,16 +90,17 @@ def main(args):
 ### Training settings
 parser = argparse.ArgumentParser(description='Configurations for Survival Analysis on TCGA Data.')
 ### Checkpoint + Misc. Pathing Parameters
-parser.add_argument('--data_root_dir',   type=str, default='path/to/data_root_dir', help='Data directory to WSI features (extracted via CLAM')
+parser.add_argument('--data_root_dir',   type=str, default='/mnt/32TB/prh/proj/wsi_data', help='Data directory to WSI features (extracted via CLAM')
 parser.add_argument('--seed', 			 type=int, default=1, help='Random seed for reproducible experiment (default: 1)')
 parser.add_argument('--k', 			     type=int, default=5, help='Number of folds (default: 5)')
 parser.add_argument('--k_start',		 type=int, default=-1, help='Start fold (Default: -1, last fold)')
 parser.add_argument('--k_end',			 type=int, default=-1, help='End fold (Default: -1, first fold)')
-parser.add_argument('--results_dir',     type=str, default='./results', help='Results directory (Default: ./results)')
+parser.add_argument('--results_dir',     type=str, default='./results_me', help='Results directory (Default: ./results)')
 parser.add_argument('--which_splits',    type=str, default='5foldcv', help='Which splits folder to use in ./splits/ (Default: ./splits/5foldcv')
 parser.add_argument('--split_dir',       type=str, default='tcga_blca_100', help='Which cancer type within ./splits/<which_splits> to use for training. Used synonymously for "task" (Default: tcga_blca_100)')
 parser.add_argument('--log_data',        action='store_true', default=True, help='Log data using tensorboard')
 parser.add_argument('--overwrite',     	 action='store_true', default=False, help='Whether or not to overwrite experiments (if already ran)')
+parser.add_argument('--testing',         action='store_true', default=False, help='Enable dataloader testing mode (sample 10% of data)')          #debug
 
 ### Model Parameters.
 parser.add_argument('--model_type',      type=str, choices=['snn', 'deepset', 'amil', 'mi_fcn', 'mcat'], default='mcat', help='Type of model (Default: mcat)')
@@ -114,8 +115,8 @@ parser.add_argument('--model_size_omic', type=str, default='small', help='Networ
 ### Optimizer Parameters + Survival Loss Function
 parser.add_argument('--opt',             type=str, choices = ['adam', 'sgd'], default='adam')
 parser.add_argument('--batch_size',      type=int, default=1, help='Batch Size (Default: 1, due to varying bag sizes)')
-parser.add_argument('--gc',              type=int, default=32, help='Gradient Accumulation Step.')
-parser.add_argument('--max_epochs',      type=int, default=20, help='Maximum number of epochs to train (default: 20)')
+parser.add_argument('--gc',              type=int, default=32, help='Gradient Accumulation Step.')    #####
+parser.add_argument('--max_epochs',      type=int, default=20, help='Maximum number of epochs to train (default: 20)')    ###
 parser.add_argument('--lr',				 type=float, default=2e-4, help='Learning rate (default: 0.0001)')
 parser.add_argument('--bag_loss',        type=str, choices=['svm', 'ce', 'ce_surv', 'nll_surv', 'cox_surv'], default='nll_surv', help='slide-level classification loss function (default: ce)')
 parser.add_argument('--label_frac',      type=float, default=1.0, help='fraction of training labels (default: 1.0)')
@@ -132,7 +133,7 @@ device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 ### Creates Experiment Code from argparse + Folder Name to Save Results
 args = get_custom_exp_code(args)
-args.task = '_'.join(args.split_dir.split('_')[:2]) + '_survival'
+args.task = '_'.join(args.split_dir.split('_')[:2]) + '_survival'   # tcga_blca_survival
 print("Experiment Name:", args.exp_code)
 
 ### Sets Seed for reproducible experiments.
@@ -161,7 +162,7 @@ settings = {'num_splits': args.k,
 			'experiment': args.exp_code,
 			'reg': args.reg,
 			'label_frac': args.label_frac,
-			'inst_loss': args.inst_loss,
+			# 'inst_loss': args.inst_loss,
 			'bag_loss': args.bag_loss,
 			'bag_weight': args.bag_weight,
 			'seed': args.seed,
@@ -176,14 +177,15 @@ print('\nLoad Dataset')
 
 if 'survival' in args.task:
 	args.n_classes = 4
-	study = '_'.join(args.task.split('_')[:2])
+	study = '_'.join(args.task.split('_')[:2])    # study = tcga_blca  数据集blca可变
 	if study == 'tcga_kirc' or study == 'tcga_kirp':
 		combined_study = 'tcga_kidney'
 	elif study == 'tcga_luad' or study == 'tcga_lusc':
 		combined_study = 'tcga_lung'
 	else:
 		combined_study = study
-	study_dir = '%s_20x_features' % combined_study
+	# study_dir = '%s_20x_features' % combined_study
+	study_dir = 'TCGA_BLCA/pt_files'               ############修改
 	dataset = Generic_MIL_Survival_Dataset(csv_path = './%s/%s_all_clean.csv.zip' % (args.dataset_path, combined_study),
 										   mode = args.mode,
 										   apply_sig = args.apply_sig,

@@ -29,7 +29,7 @@ def save_splits(split_datasets, column_keys, filename, boolean_style=False):
 		df = pd.DataFrame(bool_array, index=index, columns = ['train', 'val', 'test'])
 
 	df.to_csv(filename)
-	print()
+	# print()
 
 class Generic_WSI_Classification_Dataset(Dataset):
 	def __init__(self,

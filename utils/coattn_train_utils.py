@@ -11,6 +11,7 @@ from sksurv.metrics import concordance_index_censored
 
 
 def train_loop_survival_coattn(epoch, model, loader, optimizer, n_classes, writer=None, loss_fn=None, reg_fn=None, lambda_reg=0., gc=16):   
+    print("开始执行 train_loop_survival_coattn 函数")
     device=torch.device("cuda" if torch.cuda.is_available() else "cpu") 
     model.train()
     train_loss_surv, train_loss = 0., 0.
@@ -49,8 +50,8 @@ def train_loop_survival_coattn(epoch, model, loader, optimizer, n_classes, write
         train_loss_surv += loss_value
         train_loss += loss_value + loss_reg
 
-        if (batch_idx + 1) % 100 == 0:
-            print('batch {}, loss: {:.4f}, label: {}, event_time: {:.4f}, risk: {:.4f}, bag_size:'.format(batch_idx, loss_value + loss_reg, label.item(), float(event_time), float(risk)))
+        if (batch_idx + 1) % 50 == 0:
+            print('batch {}, loss: {:.4f}, label: {}, event_time: {:.4f}, risk: {:.4f}, bag_size:{}'.format(batch_idx, loss_value + loss_reg, label.item(), float(event_time), float(risk), data_WSI.size(0)))
         loss = loss / gc + loss_reg
         loss.backward()
 
@@ -71,6 +72,7 @@ def train_loop_survival_coattn(epoch, model, loader, optimizer, n_classes, write
 
 
 def validate_survival_coattn(cur, epoch, model, loader, n_classes, early_stopping=None, monitor_cindex=None, writer=None, loss_fn=None, reg_fn=None, lambda_reg=0., results_dir=None):
+    print("开始执行 validate_survival_coattn 函数")
     device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.eval()
     val_loss_surv, val_loss = 0., 0.
@@ -113,6 +115,7 @@ def validate_survival_coattn(cur, epoch, model, loader, n_classes, early_stoppin
     val_loss_surv /= len(loader)
     val_loss /= len(loader)
     c_index = concordance_index_censored((1-all_censorships).astype(bool), all_event_times, all_risk_scores, tied_tol=1e-08)[0]
+    print()
 
     if writer:
         writer.add_scalar('val/loss_surv', val_loss_surv, epoch)
@@ -131,6 +134,7 @@ def validate_survival_coattn(cur, epoch, model, loader, n_classes, early_stoppin
 
 
 def summary_survival_coattn(model, loader, n_classes):
+    print("开始执行 summary_survival_coattn 函数")   ####
     device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.eval()
     test_loss = 0.
@@ -158,9 +162,12 @@ def summary_survival_coattn(model, loader, n_classes):
         with torch.no_grad():
             hazards, survival, Y_hat, A  = model(x_path=data_WSI, x_omic1=data_omic1, x_omic2=data_omic2, x_omic3=data_omic3, x_omic4=data_omic4, x_omic5=data_omic5, x_omic6=data_omic6) # return hazards, S, Y_hat, A_raw, results_dict
 
-        risk = np.asscalar(-torch.sum(survival, dim=1).cpu().numpy())
-        event_time = np.asscalar(event_time)
-        c = np.asscalar(c)
+        # risk = np.asscalar(-torch.sum(survival, dim=1).cpu().numpy())    ####
+        risk = (-torch.sum(survival, dim=1)).cpu().item()   ##修改上一行
+        # event_time = np.asscalar(event_time)   ###
+        event_time = float(event_time)  ##修改上一行
+        # c = np.asscalar(c)   ###
+        c = int(c)   ##修改上一行
         all_risk_scores[batch_idx] = risk
         all_censorships[batch_idx] = c
         all_event_times[batch_idx] = event_time

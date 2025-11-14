@@ -16,6 +16,14 @@ from torch.utils.data import Dataset
 
 from utils.utils import generate_split, nth
 
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    category=FutureWarning,
+    message=".*Series.__getitem__ treating keys as positions is deprecated.*"
+)
+
+
 
 class Generic_WSI_Survival_Dataset(Dataset):
     def __init__(self,
@@ -123,7 +131,7 @@ class Generic_WSI_Survival_Dataset(Dataset):
         ### Signatures
         self.apply_sig = apply_sig
         if self.apply_sig:
-            self.signatures = pd.read_csv('./dataset_csv_sig/signatures.csv')
+            self.signatures = pd.read_csv('/mnt/32TB/prh/proj/MCAT/datasets_csv_sig/signatures.csv')
         else:
             self.signatures = None
 
@@ -253,7 +261,8 @@ class Generic_MIL_Survival_Dataset(Generic_WSI_Survival_Dataset):
                 if self.mode == 'path':
                     path_features = []
                     for slide_id in slide_ids:
-                        wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))
+                        wsi_path = os.path.join(data_dir, '{}.pt'.format(slide_id.rstrip('.svs')))
+                        # wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))  #我的文件里没有pt_files，直接就是数据
                         wsi_bag = torch.load(wsi_path)
                         path_features.append(wsi_bag)
                     path_features = torch.cat(path_features, dim=0)
@@ -263,7 +272,8 @@ class Generic_MIL_Survival_Dataset(Generic_WSI_Survival_Dataset):
                     path_features = []
                     cluster_ids = []
                     for slide_id in slide_ids:
-                        wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))
+                        wsi_path = os.path.join(data_dir, '{}.pt'.format(slide_id.rstrip('.svs')))
+                        # wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))  # 同上
                         wsi_bag = torch.load(wsi_path)
                         path_features.append(wsi_bag)
                         cluster_ids.extend(self.fname2ids[slide_id[:-4]+'.pt'])
@@ -279,7 +289,8 @@ class Generic_MIL_Survival_Dataset(Generic_WSI_Survival_Dataset):
                 elif self.mode == 'pathomic':
                     path_features = []
                     for slide_id in slide_ids:
-                        wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))
+                        wsi_path = os.path.join(data_dir, '{}.pt'.format(slide_id.rstrip('.svs')))
+                        # wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))  #同上
                         wsi_bag = torch.load(wsi_path)
                         path_features.append(wsi_bag)
                     path_features = torch.cat(path_features, dim=0)
@@ -289,7 +300,8 @@ class Generic_MIL_Survival_Dataset(Generic_WSI_Survival_Dataset):
                 elif self.mode == 'coattn':
                     path_features = []
                     for slide_id in slide_ids:
-                        wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))
+                        wsi_path = os.path.join(data_dir, '{}.pt'.format(slide_id.rstrip('.svs')))
+                        # wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))  #同上
                         wsi_bag = torch.load(wsi_path)
                         path_features.append(wsi_bag)
                     path_features = torch.cat(path_features, dim=0)
@@ -299,7 +311,7 @@ class Generic_MIL_Survival_Dataset(Generic_WSI_Survival_Dataset):
                     omic4 = torch.tensor(self.genomic_features[self.omic_names[3]].iloc[idx])
                     omic5 = torch.tensor(self.genomic_features[self.omic_names[4]].iloc[idx])
                     omic6 = torch.tensor(self.genomic_features[self.omic_names[5]].iloc[idx])
-                    return (path_features, omic1, omic2, omic3, omic4, omic5, omic6, label, event_time, c)
+                    return (path_features, omic1, omic2, omic3, omic4, omic5, omic6, label, event_time, c)    #####
 
                 else:
                     raise NotImplementedError('Mode [%s] not implemented.' % self.mode)

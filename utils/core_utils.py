@@ -98,7 +98,7 @@ class Monitor_CIndex:
 
 def train(datasets: tuple, cur: int, args: Namespace):
     """   
-        train for a single fold
+        train for a single fold, cur是当前的fold数
     """
     print('\nTraining Fold {}!'.format(cur))
     writer_dir = os.path.join(args.results_dir, str(cur))
@@ -168,7 +168,7 @@ def train(datasets: tuple, cur: int, args: Namespace):
     else:
         model = model.to(torch.device('cuda'))
     print('Done!')
-    print_network(model)
+    # print_network(model)    ### 输出模型结构
 
     print('\nInit optimizer ...', end=' ')
     optimizer = get_optim(model, args)
@@ -180,11 +180,13 @@ def train(datasets: tuple, cur: int, args: Namespace):
     val_loader = get_split_loader(val_split,  testing = args.testing, mode=args.mode, batch_size=args.batch_size)
     print('Done!')
 
-    print('\nSetup EarlyStopping...', end=' ')
+    print('\nSetup EarlyStopping...', end=' ')      ###
     if args.early_stopping:
         early_stopping = EarlyStopping(warmup=0, patience=10, stop_epoch=20, verbose = True)
+        print('Done!')
     else:
         early_stopping = None
+        print('Not set EarlyStopping')
 
     print('\nSetup Validation C-Index Monitor...', end=' ')
     monitor_cindex = Monitor_CIndex()
@@ -201,7 +203,15 @@ def train(datasets: tuple, cur: int, args: Namespace):
 
     torch.save(model.state_dict(), os.path.join(args.results_dir, "s_{}_checkpoint.pt".format(cur)))
     model.load_state_dict(torch.load(os.path.join(args.results_dir, "s_{}_checkpoint.pt".format(cur))))
-    results_val_dict, val_cindex = summary_survival(model, val_loader, args.n_classes)
+    #=======新增：根据args.mode选择不同的summary函数=================
+    if args.mode == 'coattn':
+        #使用coattn专用的summary
+        results_val_dict, val_cindex = summary_survival_coattn(model, val_loader, args.n_classes)
+    else:
+        # 其他模式用原来的 summary_survival
+        results_val_dict, val_cindex = summary_survival(model, val_loader, args.n_classes)
+    #================================================================
+    # results_val_dict, val_cindex = summary_survival(model, val_loader, args.n_classes)  #论文原始版本
     print('Val c-Index: {:.4f}'.format(val_cindex))
     writer.close()
     return results_val_dict, val_cindex
@@ -241,7 +251,7 @@ def train_loop_survival(epoch, model, loader, optimizer, n_classes, writer=None,
         train_loss_surv += loss_value
         train_loss += loss_value + loss_reg
 
-        if (batch_idx + 1) % 100 == 0:
+        if (batch_idx + 1) % 50 == 0:
             print('batch {}, loss: {:.4f}, label: {}, event_time: {:.4f}, risk: {:.4f}, bag_size: {}'.format(batch_idx, loss_value + loss_reg, label.item(), float(event_time), float(risk), data_WSI.size(0)))
         # backward pass
         loss = loss / gc + loss_reg
@@ -330,7 +340,7 @@ def summary_survival(model, loader, n_classes):
     slide_ids = loader.dataset.slide_data['slide_id']
     patient_results = {}
 
-    for batch_idx, (data_WSI, data_omic, label, event_time, c) in enumerate(loader):
+    for batch_idx, (data_WSI, data_omic, label, event_time, c) in enumerate(loader):          ######
         data_WSI, data_omic = data_WSI.to(device), data_omic.to(device)
         label = label.to(device)
         
